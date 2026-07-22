@@ -20,6 +20,7 @@
 - target 领先 upstream：警告，因为本地 target 含有尚未推送的提交。
 - source 领先 upstream：默认警告；指定 `--require-source-pushed` 时阻止。
 - source/target 没有 upstream：默认警告；指定严格参数时阻止。
+- 无法计算 source/target 与 upstream 的 ahead/behind：默认警告；对应严格参数启用时阻止。
 
 这些比较只使用本地 remote-tracking refs。脚本不执行 fetch。
 
@@ -46,5 +47,6 @@
 - 本地落后 remote-tracking ref：`DO_NOT_PUSH`。
 - ahead 为 0：`PUSH_WITH_WARNINGS`，通常表示没有新提交可推送。
 - ahead > 0 且 behind = 0：在其他检查通过时为 `SAFE_TO_PUSH`。
+- 无法计算 ahead/behind：`DO_NOT_PUSH`，不得把未知状态解释为安全。
 
 本 Skill 不判断 force-push、受保护分支、服务端 hooks、PR 审批或 CI 状态。

@@ -130,7 +130,7 @@ python /path/to/git-worktree-safety/scripts/list_cleanup_candidates.py \
 python /path/to/git-worktree-safety/scripts/inspect_repository.py --repo .
 ```
 
-所有脚本输出 JSON，可以通过 `--output report.json` 同时落盘。
+所有脚本输出 JSON，可以通过 `--output report.json` 同时落盘。默认检查不修改 Git refs、index、配置或已有文件；指定 `--output` 会创建或覆盖用户指定的报告文件。
 
 ## 不可违反的规则
 
@@ -147,11 +147,11 @@ python /path/to/git-worktree-safety/scripts/inspect_repository.py --repo .
 
 | 脚本 | 用途 | 是否修改仓库 |
 |---|---|---|
-| `scripts/inspect_repository.py` | 汇总仓库、分支、upstream、dirty 和 worktree 状态 | 否 |
-| `scripts/check_worktree.py` | 开始工作前检查当前 worktree | 否 |
-| `scripts/check_merge_readiness.py` | 合并前检查 ancestry、冲突、worktree 和远端跟踪状态 | 否 |
-| `scripts/check_push_readiness.py` | 推送前检查本地分支与 remote-tracking ref 的分叉 | 否 |
-| `scripts/list_cleanup_candidates.py` | 清理前列出候选、阻止项和人工建议命令 | 否 |
+| `scripts/inspect_repository.py` | 汇总仓库、分支、upstream、dirty 和 worktree 状态 | 默认不修改；`--output` 写报告 |
+| `scripts/check_worktree.py` | 开始工作前检查当前 worktree | 默认不修改；`--output` 写报告 |
+| `scripts/check_merge_readiness.py` | 合并前检查 ancestry、冲突、worktree 和远端跟踪状态 | 默认不修改；`--output` 写报告 |
+| `scripts/check_push_readiness.py` | 推送前检查本地分支与 remote-tracking ref 的分叉 | 默认不修改；`--output` 写报告 |
+| `scripts/list_cleanup_candidates.py` | 清理前列出候选、阻止项和人工建议命令 | 默认不修改；`--output` 写报告 |
 
 ## 输出要求
 

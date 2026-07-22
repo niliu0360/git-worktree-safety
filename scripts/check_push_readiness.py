@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import sys
 from pathlib import Path
+from typing import Optional
 
 from _gitlib import (
     GitInspectionError,
@@ -22,8 +23,8 @@ from _gitlib import (
 
 def build_report(
     repo_arg: str,
-    branch_arg: str | None,
-    remote_ref: str | None,
+    branch_arg: Optional[str],
+    remote_ref: Optional[str],
     require_clean: bool,
 ) -> dict:
     repo = ensure_repo(Path(repo_arg).resolve())
@@ -32,7 +33,7 @@ def build_report(
     warnings: list[dict] = []
     checks: list[dict] = []
 
-    def check(name: str, status: str, detail: str, data: dict | None = None) -> None:
+    def check(name: str, status: str, detail: str, data: Optional[dict] = None) -> None:
         row = {"check": name, "status": status, "detail": detail}
         if data:
             row["data"] = data
@@ -77,17 +78,23 @@ def build_report(
 
     if branch and upstream and resolve_commit(repo, branch) and resolve_commit(repo, upstream):
         divergence = ahead_behind(repo, branch, upstream)
-        ahead, behind = divergence if divergence else (None, None)
-        if behind:
+        ahead, behind = divergence if divergence is not None else (None, None)
+        if divergence is None:
             status = "block"
+            detail = "unable to determine remote divergence"
+        elif behind:
+            status = "block"
+            detail = f"ahead={ahead}; behind={behind}"
         elif ahead == 0:
             status = "warn"
+            detail = f"ahead={ahead}; behind={behind}"
         else:
             status = "pass"
+            detail = f"ahead={ahead}; behind={behind}"
         check(
             "remote_divergence",
             status,
-            f"ahead={ahead}; behind={behind}",
+            detail,
             {"branch": branch, "remote_ref": upstream},
         )
     elif upstream:

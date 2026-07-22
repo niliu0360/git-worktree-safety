@@ -1,5 +1,9 @@
 # git-worktree-safety 0.1.0
 
+> **Status: Public Beta** — explicit workflow, deterministic checks, no automatic enforcement.
+
+Conservative Git and worktree safety checks for parallel AI coding workflows.
+
 一个面向 AI Coding、多窗口和多 Agent 并行开发的 Git / worktree 安全检查 Skill。
 
 它回答：
@@ -39,6 +43,13 @@
 - Git 2.38+ 建议版本；合并检查把 `merge-tree --write-tree` 产生的临时对象隔离到系统临时目录，不写入目标仓库对象库；较旧 Git 会降级为警告
 - 仅使用 Python 标准库
 
+支持情况：
+
+- Linux：通过 GitHub Actions 测试；
+- macOS：脚本仅依赖 Python 标准库和 Git，预期兼容，尚未纳入 CI；
+- Windows WSL2：已人工验证；
+- Windows 原生：尚未验证。
+
 ## 快速开始
 
 ### 1. 检查当前仓库
@@ -74,7 +85,7 @@ python /path/to/git-worktree-safety/scripts/list_cleanup_candidates.py \
   --repo . --merged-into main --idle-days 7
 ```
 
-所有脚本默认把 JSON 输出到 stdout。使用 `--output report.json` 可同时写入文件。
+所有脚本默认把 JSON 输出到 stdout，不修改 Git refs、index、配置或已有文件。使用 `--output report.json` 时会创建或覆盖用户指定的报告文件；若路径位于仓库内，工作区可能因此变脏。
 
 ## 退出码
 
@@ -93,6 +104,7 @@ python /path/to/git-worktree-safety/scripts/list_cleanup_candidates.py \
 - `origin/main` 可能已经过期；
 - “target 未落后远端”只表示未落后本地已有的 remote-tracking ref；
 - 对合并或推送做最终判断前，应由用户显式运行 `git fetch --prune`，再重新检查。
+- 如果现有 refs 无法计算 ahead/behind，推送检查会阻止，合并检查会警告；启用相应严格参数时合并检查也会阻止。
 
 ## 会话所有权说明
 

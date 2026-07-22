@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import importlib.util
 import os
 import shutil
 import subprocess
@@ -10,12 +11,26 @@ import tempfile
 import time
 import unittest
 from pathlib import Path
+from typing import Optional
+from unittest import mock
 
 SKILL_ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = SKILL_ROOT / "scripts"
+if str(SCRIPTS) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS))
 
 
-def run(cmd: list[str], cwd: Path | None = None, check: bool = True) -> subprocess.CompletedProcess[str]:
+def load_script_module(filename: str):
+    module_name = f"test_{Path(filename).stem}"
+    spec = importlib.util.spec_from_file_location(module_name, SCRIPTS / filename)
+    if spec is None or spec.loader is None:
+        raise AssertionError(f"cannot load {filename}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def run(cmd: list[str], cwd: Optional[Path] = None, check: bool = True) -> subprocess.CompletedProcess[str]:
     proc = subprocess.run(cmd, cwd=cwd, text=True, capture_output=True, check=False)
     if check and proc.returncode != 0:
         raise AssertionError(
@@ -199,6 +214,57 @@ class GitWorktreeSafetyTests(unittest.TestCase):
         git(fx.repo, "fetch", "-q", "origin")
         rc, data = script("check_push_readiness.py", "--repo", str(fx.repo), "--branch", "main")
         self.assertEqual((rc, data["verdict"]), (2, "DO_NOT_PUSH"))
+
+    def test_push_divergence_unavailable_blocks(self) -> None:
+        fx = RepoFixture(self.tmp, with_remote=True)
+        module = load_script_module("check_push_readiness.py")
+        with mock.patch.object(module, "ahead_behind", return_value=None):
+            data = module.build_report(str(fx.repo), "main", None, False)
+        self.assertEqual(data["verdict"], "DO_NOT_PUSH")
+        issue = next(x for x in data["blockers"] if x["check"] == "remote_divergence")
+        self.assertIn("unable to determine", issue["detail"])
+
+    def test_merge_divergence_unavailable_warns_or_blocks(self) -> None:
+        fx = RepoFixture(self.tmp, with_remote=True)
+        fx.create_feature(push=True)
+        module = load_script_module("check_merge_readiness.py")
+        with mock.patch.object(module, "ahead_behind", return_value=None):
+            relaxed = module.build_report(str(fx.repo), "feature/test", "main", False, False)
+            strict = module.build_report(str(fx.repo), "feature/test", "main", False, True)
+        self.assertEqual(relaxed["verdict"], "MERGE_WITH_WARNINGS")
+        self.assertTrue(any("unable to determine" in x["detail"] for x in relaxed["warnings"]))
+        self.assertEqual(strict["verdict"], "DO_NOT_MERGE")
+
+    def test_output_path_writes_report_file(self) -> None:
+        fx = RepoFixture(self.tmp)
+        output = fx.repo / "safety-report.json"
+        rc, data = script("inspect_repository.py", "--repo", str(fx.repo), "--output", str(output))
+        self.assertEqual(rc, 0)
+        self.assertTrue(output.is_file())
+        self.assertEqual(json.loads(output.read_text(encoding="utf-8"))["tool"], data["tool"])
+        self.assertIn("?? safety-report.json", git(fx.repo, "status", "--porcelain=v1").stdout)
+
+    def test_bare_repository_is_invalid(self) -> None:
+        bare = self.tmp / "bare.git"
+        run(["git", "init", "--bare", "-q", str(bare)])
+        rc, data = script("check_worktree.py", "--repo", str(bare))
+        self.assertEqual((rc, data["verdict"]), (2, "INVALID"))
+
+    def test_shallow_clone_is_inspectable(self) -> None:
+        fx = RepoFixture(self.tmp / "source", with_remote=True)
+        shallow = self.tmp / "shallow"
+        run(["git", "clone", "-q", "--depth", "1", fx.remote.as_uri(), str(shallow)])
+        rc, data = script("inspect_repository.py", "--repo", str(shallow))
+        self.assertEqual(rc, 0)
+        self.assertEqual(data["current_branch"], "main")
+
+    def test_remote_name_other_than_origin(self) -> None:
+        fx = RepoFixture(self.tmp, with_remote=True)
+        git(fx.repo, "remote", "rename", "origin", "upstream")
+        rc, data = script("check_push_readiness.py", "--repo", str(fx.repo), "--branch", "main")
+        self.assertEqual(rc, 1)
+        remote_check = next(x for x in data["checks"] if x["check"] == "remote_ref")
+        self.assertEqual(remote_check["detail"], "upstream/main")
 
     def test_cleanup_classifies_safe_dirty_and_current(self) -> None:
         fx = RepoFixture(self.tmp)

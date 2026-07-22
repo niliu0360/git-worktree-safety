@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import sys
 from pathlib import Path
+from typing import Optional
 
 from _gitlib import (
     GitInspectionError,
@@ -20,7 +21,7 @@ from _gitlib import (
 
 def build_report(
     repo_arg: str,
-    expected_branch: str | None,
+    expected_branch: Optional[str],
     require_clean: bool,
     require_upstream: bool,
 ) -> dict:

@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import sys
 from pathlib import Path
+from typing import Optional
 
 from _gitlib import (
     GitInspectionError,
@@ -33,7 +34,7 @@ def build_report(
     warnings: list[dict] = []
     checks: list[dict] = []
 
-    def check(name: str, status: str, detail: str, data: dict | None = None) -> None:
+    def check(name: str, status: str, detail: str, data: Optional[dict] = None) -> None:
         row = {"check": name, "status": status, "detail": detail}
         if data:
             row["data"] = data
@@ -117,18 +118,26 @@ def build_report(
     source_upstream = upstream_for(repo, source)
     if source_upstream:
         divergence = ahead_behind(repo, source, source_upstream)
-        ahead, behind = divergence if divergence else (None, None)
-        status = "pass"
-        if ahead and require_source_pushed:
+        ahead, behind = divergence if divergence is not None else (None, None)
+        if divergence is None:
+            status = "block" if require_source_pushed else "warn"
+            detail = f"upstream={source_upstream}; unable to determine remote divergence"
+        elif ahead and require_source_pushed:
             status = "block"
+            detail = f"upstream={source_upstream}; ahead={ahead}; behind={behind}"
         elif ahead:
             status = "warn"
-        if behind:
-            status = "warn" if status != "block" else status
+            detail = f"upstream={source_upstream}; ahead={ahead}; behind={behind}"
+        elif behind:
+            status = "warn"
+            detail = f"upstream={source_upstream}; ahead={ahead}; behind={behind}"
+        else:
+            status = "pass"
+            detail = f"upstream={source_upstream}; ahead={ahead}; behind={behind}"
         check(
             "source_remote_state",
             status,
-            f"upstream={source_upstream}; ahead={ahead}; behind={behind}",
+            detail,
         )
     else:
         check(
@@ -140,17 +149,23 @@ def build_report(
     target_upstream = upstream_for(repo, target)
     if target_upstream:
         divergence = ahead_behind(repo, target, target_upstream)
-        ahead, behind = divergence if divergence else (None, None)
-        if behind:
+        ahead, behind = divergence if divergence is not None else (None, None)
+        if divergence is None:
+            status = "block" if require_target_synced else "warn"
+            detail = f"upstream={target_upstream}; unable to determine remote divergence"
+        elif behind:
             status = "block"
+            detail = f"upstream={target_upstream}; ahead={ahead}; behind={behind}"
         elif ahead:
             status = "warn"
+            detail = f"upstream={target_upstream}; ahead={ahead}; behind={behind}"
         else:
             status = "pass"
+            detail = f"upstream={target_upstream}; ahead={ahead}; behind={behind}"
         check(
             "target_remote_state",
             status,
-            f"upstream={target_upstream}; ahead={ahead}; behind={behind}",
+            detail,
         )
     else:
         check(

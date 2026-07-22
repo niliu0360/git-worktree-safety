@@ -5,6 +5,7 @@ import argparse
 import shlex
 import sys
 from pathlib import Path
+from typing import Optional
 
 from _gitlib import (
     GitInspectionError,
@@ -121,7 +122,7 @@ def classify_worktree(
 
 def build_report(
     repo_arg: str,
-    target: str | None,
+    target: Optional[str],
     idle_days: int,
     extra_protected: list[str],
 ) -> dict:

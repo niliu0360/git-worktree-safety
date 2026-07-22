@@ -8,7 +8,7 @@ import subprocess
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any, Iterable, Optional
 
 
 class GitInspectionError(RuntimeError):
@@ -27,7 +27,7 @@ def run_git(
     args: Iterable[str],
     *,
     check: bool = True,
-    env: dict[str, str] | None = None,
+    env: Optional[dict[str, str]] = None,
 ) -> GitResult:
     cmd = ["git", "-C", str(repo), *args]
     proc = subprocess.run(
@@ -68,12 +68,12 @@ def common_git_dir(repo: Path) -> Path:
     return path.resolve()
 
 
-def current_branch(repo: Path) -> str | None:
+def current_branch(repo: Path) -> Optional[str]:
     value = run_git(repo, ["symbolic-ref", "--quiet", "--short", "HEAD"], check=False)
     return value.stdout or None
 
 
-def head_oid(repo: Path) -> str | None:
+def head_oid(repo: Path) -> Optional[str]:
     value = run_git(repo, ["rev-parse", "--verify", "HEAD"], check=False)
     return value.stdout or None
 
@@ -135,7 +135,7 @@ def parse_worktrees(repo: Path) -> list[dict[str, Any]]:
     return records
 
 
-def default_branch(repo: Path) -> str | None:
+def default_branch(repo: Path) -> Optional[str]:
     symbolic = run_git(
         repo,
         ["symbolic-ref", "--quiet", "--short", "refs/remotes/origin/HEAD"],
@@ -153,12 +153,12 @@ def ref_exists(repo: Path, ref: str) -> bool:
     return run_git(repo, ["show-ref", "--verify", "--quiet", ref], check=False).returncode == 0
 
 
-def resolve_commit(repo: Path, ref: str) -> str | None:
+def resolve_commit(repo: Path, ref: str) -> Optional[str]:
     result = run_git(repo, ["rev-parse", "--verify", f"{ref}^{{commit}}"], check=False)
     return result.stdout or None
 
 
-def upstream_for(repo: Path, branch: str) -> str | None:
+def upstream_for(repo: Path, branch: str) -> Optional[str]:
     result = run_git(
         repo,
         ["for-each-ref", "--format=%(upstream:short)", f"refs/heads/{branch}"],
@@ -167,7 +167,7 @@ def upstream_for(repo: Path, branch: str) -> str | None:
     return result.stdout or None
 
 
-def ahead_behind(repo: Path, left: str, right: str) -> tuple[int, int] | None:
+def ahead_behind(repo: Path, left: str, right: str) -> Optional[tuple[int, int]]:
     result = run_git(
         repo,
         ["rev-list", "--left-right", "--count", f"{left}...{right}"],
@@ -181,7 +181,7 @@ def ahead_behind(repo: Path, left: str, right: str) -> tuple[int, int] | None:
     return int(parts[0]), int(parts[1])
 
 
-def is_ancestor(repo: Path, ancestor: str, descendant: str) -> bool | None:
+def is_ancestor(repo: Path, ancestor: str, descendant: str) -> Optional[bool]:
     result = run_git(repo, ["merge-base", "--is-ancestor", ancestor, descendant], check=False)
     if result.returncode == 0:
         return True
@@ -221,14 +221,14 @@ def merge_tree_check(repo: Path, target: str, source: str) -> dict[str, Any]:
     }
 
 
-def branch_worktree(repo: Path, branch: str) -> dict[str, Any] | None:
+def branch_worktree(repo: Path, branch: str) -> Optional[dict[str, Any]]:
     for item in parse_worktrees(repo):
         if item.get("branch") == branch:
             return item
     return None
 
 
-def directory_age_days(path: Path) -> float | None:
+def directory_age_days(path: Path) -> Optional[float]:
     try:
         stat = path.stat()
     except OSError:
@@ -236,7 +236,7 @@ def directory_age_days(path: Path) -> float | None:
     return max(0.0, (float(__import__("time").time()) - stat.st_mtime) / 86400.0)
 
 
-def write_json(data: Any, destination: str | None) -> None:
+def write_json(data: Any, destination: Optional[str]) -> None:
     text = json.dumps(data, ensure_ascii=False, indent=2, sort_keys=False)
     if destination:
         Path(destination).write_text(text + "\n", encoding="utf-8")

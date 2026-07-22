@@ -10,3 +10,6 @@
 - `git fetch` 不由脚本自动执行；远端同步判断只基于本地已有的 remote-tracking refs。
 - 明确区分 Git 安全与需求完成：本 Skill 不替代测试、代码评审或 completion-discipline。
 - 增加 JSON Schema、示例、自动化测试和 MIT License。
+- ahead/behind 无法计算时改为保守警告或阻止，不再产生虚假的安全结论。
+- 明确 `--output` 会写入用户指定的报告文件。
+- 增加 Python 3.9–3.13 CI、Public Beta 状态和公共贡献/安全说明。
