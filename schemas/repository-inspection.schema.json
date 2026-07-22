@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/git-worktree-safety/repository-inspection.schema.json",
+  "title": "Repository Inspection",
+  "type": "object",
+  "required": ["schema_version", "tool", "verdict"],
+  "properties": {
+    "schema_version": {"const": "0.1.0"},
+    "tool": {"const": "inspect_repository"},
+    "verdict": {"enum": ["INSPECTED", "INSPECTED_WITH_WARNINGS", "INVALID"]},
+    "repository_root": {"type": "string"},
+    "head": {"type": ["string", "null"]},
+    "current_branch": {"type": ["string", "null"]},
+    "detached_head": {"type": "boolean"},
+    "default_branch": {"type": ["string", "null"]},
+    "upstream": {"type": ["string", "null"]},
+    "ahead": {"type": ["integer", "null"]},
+    "behind": {"type": ["integer", "null"]},
+    "dirty": {"type": "boolean"},
+    "status_entries": {"type": "array", "items": {"type": "string"}},
+    "operations_in_progress": {"type": "array", "items": {"type": "string"}},
+    "worktrees": {"type": "array", "items": {"type": "object"}},
+    "warnings": {"type": "array", "items": {"type": "string"}},
+    "limitations": {"type": "array", "items": {"type": "string"}},
+    "errors": {"type": "array", "items": {"type": "string"}}
+  },
+  "additionalProperties": true
+}

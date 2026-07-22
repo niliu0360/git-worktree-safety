@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/git-worktree-safety/safety-report.schema.json",
+  "title": "Git Worktree Safety Report",
+  "type": "object",
+  "required": ["schema_version", "tool", "verdict"],
+  "properties": {
+    "schema_version": {"const": "0.1.0"},
+    "tool": {
+      "enum": [
+        "check_worktree",
+        "check_merge_readiness",
+        "check_push_readiness"
+      ]
+    },
+    "mode": {
+      "enum": ["start_work_check", "merge_push_check"]
+    },
+    "operation": {
+      "enum": ["merge", "push"]
+    },
+    "verdict": {
+      "enum": [
+        "SAFE_TO_WORK",
+        "WORK_WITH_WARNINGS",
+        "DO_NOT_MODIFY",
+        "SAFE_TO_MERGE",
+        "MERGE_WITH_WARNINGS",
+        "DO_NOT_MERGE",
+        "SAFE_TO_PUSH",
+        "PUSH_WITH_WARNINGS",
+        "DO_NOT_PUSH",
+        "INVALID"
+      ]
+    },
+    "checks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["check", "status", "detail"],
+        "properties": {
+          "check": {"type": "string"},
+          "status": {"enum": ["pass", "warn", "block"]},
+          "detail": {"type": "string"},
+          "data": {"type": "object"}
+        },
+        "additionalProperties": true
+      }
+    },
+    "blockers": {"type": "array"},
+    "warnings": {"type": "array"},
+    "limitations": {
+      "type": "array",
+      "items": {"type": "string"}
+    },
+    "errors": {
+      "type": "array",
+      "items": {"type": "string"}
+    }
+  },
+  "additionalProperties": true
+}

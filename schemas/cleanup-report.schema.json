@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/git-worktree-safety/cleanup-report.schema.json",
+  "title": "Worktree Cleanup Audit",
+  "type": "object",
+  "required": ["schema_version", "tool", "verdict"],
+  "properties": {
+    "schema_version": {"const": "0.1.0"},
+    "tool": {"const": "list_cleanup_candidates"},
+    "mode": {"const": "cleanup_audit"},
+    "verdict": {
+      "enum": [
+        "AUDIT_COMPLETE",
+        "AUDIT_COMPLETE_WITH_REVIEWS",
+        "AUDIT_COMPLETE_WITH_BLOCKED_ITEMS",
+        "INVALID"
+      ]
+    },
+    "repository_root": {"type": "string"},
+    "merged_into": {"type": "string"},
+    "idle_days": {"type": "integer", "minimum": 0},
+    "protected_branches": {"type": "array", "items": {"type": "string"}},
+    "counts": {
+      "type": "object",
+      "required": ["SAFE_CANDIDATE", "REVIEW_REQUIRED", "DO_NOT_DELETE"],
+      "properties": {
+        "SAFE_CANDIDATE": {"type": "integer", "minimum": 0},
+        "REVIEW_REQUIRED": {"type": "integer", "minimum": 0},
+        "DO_NOT_DELETE": {"type": "integer", "minimum": 0}
+      },
+      "additionalProperties": false
+    },
+    "worktrees": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path", "verdict", "blockers", "warnings", "suggested_commands"],
+        "properties": {
+          "path": {"type": "string"},
+          "branch": {"type": ["string", "null"]},
+          "verdict": {"enum": ["SAFE_CANDIDATE", "REVIEW_REQUIRED", "DO_NOT_DELETE"]},
+          "dirty": {"type": "boolean"},
+          "blockers": {"type": "array", "items": {"type": "string"}},
+          "warnings": {"type": "array", "items": {"type": "string"}},
+          "suggested_commands": {"type": "array", "items": {"type": "string"}}
+        },
+        "additionalProperties": true
+      }
+    },
+    "limitations": {"type": "array", "items": {"type": "string"}},
+    "errors": {"type": "array", "items": {"type": "string"}}
+  },
+  "additionalProperties": true
+}
