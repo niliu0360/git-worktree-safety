@@ -7,13 +7,13 @@ import sys
 from pathlib import Path
 from typing import Optional
 
+from _control_adapter import add_format_argument, format_report
 from _gitlib import (
     GitInspectionError,
     ahead_behind,
     default_branch,
     directory_age_days,
     ensure_repo,
-    exit_for_verdict,
     is_ancestor,
     operation_in_progress,
     parse_worktrees,
@@ -177,6 +177,7 @@ def main() -> int:
     parser.add_argument("--idle-days", type=int, default=7)
     parser.add_argument("--protect", action="append", default=[])
     parser.add_argument("--output")
+    add_format_argument(parser)
     args = parser.parse_args()
     if args.idle_days < 0:
         parser.error("--idle-days must be >= 0")
@@ -188,11 +189,13 @@ def main() -> int:
             "tool": "list_cleanup_candidates",
             "mode": "cleanup_audit",
             "verdict": "INVALID",
+            "repository_root": str(Path(args.repo).resolve()),
+            "merged_into": args.target,
             "errors": [str(exc)],
         }
-        write_json(report, args.output)
+        write_json(format_report(report, args.format), args.output)
         return 2
-    write_json(report, args.output)
+    write_json(format_report(report, args.format), args.output)
     return 0
 
 
