@@ -6,6 +6,7 @@ import sys
 from pathlib import Path
 from typing import Optional
 
+from _control_adapter import add_format_argument, format_report
 from _gitlib import (
     GitInspectionError,
     ahead_behind,
@@ -138,6 +139,7 @@ def main() -> int:
     parser.add_argument("--remote-ref")
     parser.add_argument("--require-clean", action="store_true")
     parser.add_argument("--output")
+    add_format_argument(parser)
     args = parser.parse_args()
     try:
         report = build_report(args.repo, args.branch, args.remote_ref, args.require_clean)
@@ -148,12 +150,16 @@ def main() -> int:
             "mode": "merge_push_check",
             "operation": "push",
             "verdict": "INVALID",
+            "repository_root": str(Path(args.repo).resolve()),
+            "branch": args.branch,
+            "remote_ref": args.remote_ref,
             "errors": [str(exc)],
         }
-        write_json(report, args.output)
+        write_json(format_report(report, args.format), args.output)
         return 2
-    write_json(report, args.output)
-    return exit_for_verdict(report["verdict"])
+    exit_code = exit_for_verdict(report["verdict"])
+    write_json(format_report(report, args.format), args.output)
+    return exit_code
 
 
 if __name__ == "__main__":

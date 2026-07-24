@@ -6,6 +6,7 @@ import sys
 from pathlib import Path
 from typing import Optional
 
+from _control_adapter import add_format_argument, format_report
 from _gitlib import (
     GitInspectionError,
     ahead_behind,
@@ -134,11 +135,7 @@ def build_report(
         else:
             status = "pass"
             detail = f"upstream={source_upstream}; ahead={ahead}; behind={behind}"
-        check(
-            "source_remote_state",
-            status,
-            detail,
-        )
+        check("source_remote_state", status, detail)
     else:
         check(
             "source_remote_state",
@@ -162,11 +159,7 @@ def build_report(
         else:
             status = "pass"
             detail = f"upstream={target_upstream}; ahead={ahead}; behind={behind}"
-        check(
-            "target_remote_state",
-            status,
-            detail,
-        )
+        check("target_remote_state", status, detail)
     else:
         check(
             "target_remote_state",
@@ -211,6 +204,7 @@ def main() -> int:
     parser.add_argument("--require-source-pushed", action="store_true")
     parser.add_argument("--require-target-synced", action="store_true")
     parser.add_argument("--output")
+    add_format_argument(parser)
     args = parser.parse_args()
     try:
         report = build_report(
@@ -227,12 +221,16 @@ def main() -> int:
             "mode": "merge_push_check",
             "operation": "merge",
             "verdict": "INVALID",
+            "repository_root": str(Path(args.repo).resolve()),
+            "source": args.source,
+            "target": args.target,
             "errors": [str(exc)],
         }
-        write_json(report, args.output)
+        write_json(format_report(report, args.format), args.output)
         return 2
-    write_json(report, args.output)
-    return exit_for_verdict(report["verdict"])
+    exit_code = exit_for_verdict(report["verdict"])
+    write_json(format_report(report, args.format), args.output)
+    return exit_code
 
 
 if __name__ == "__main__":

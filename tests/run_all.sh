@@ -10,4 +10,5 @@ else
   exit 2
 fi
 "$PYTHON" -m py_compile "$ROOT"/scripts/*.py
-"$PYTHON" "$ROOT/tests/test_scripts.py"
+PYTHONPATH="$ROOT/tests:$ROOT/scripts${PYTHONPATH:+:$PYTHONPATH}" \
+  "$PYTHON" -m unittest discover -s "$ROOT/tests" -p 'test_*.py' -v

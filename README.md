@@ -1,4 +1,4 @@
-# git-worktree-safety 0.1.0
+# git-worktree-safety 0.2.0-beta.1
 
 > **Status: Public Beta** — explicit workflow, deterministic checks, no automatic enforcement.
 
@@ -17,11 +17,49 @@ Conservative Git and worktree safety checks for parallel AI coding workflows.
 
 `completion-discipline` 判断“需求是否完成”。
 
-`git-worktree-safety` 判断“当前 Git 操作是否安全”。
+`ai-engineering-control-layer` 决定某个动作当前是 `ALLOW`、附条件允许、需要人工批准还是 `BLOCK`。
 
-两者边界不同：代码可以安全合并，但需求仍可能遗漏；需求已经完成，也可能因为脏 worktree、远端落后或冲突而不能合并。
+`git-worktree-safety` 只提供 Git/worktree 事实。它不决定需求是否完成，也不独立授权合并、推送、发布或删除。
 
-## 0.1.0 的安全边界
+## 0.2 的变化
+
+五个脚本都支持两种输出：
+
+```text
+--format legacy           # 默认，保持 0.1.x JSON 兼容
+--format control-adapter  # AICR 0.2 Adapter Result
+```
+
+Control Adapter 固定使用：
+
+```text
+scope = GIT_STATE_ONLY
+result = PASS | WARN | BLOCK | UNKNOWN
+```
+
+它还包含：
+
+- `observed_at` 和唯一 run ID；
+- repository、worktree、branch、source/target ref 和 head OID 快照；
+- `checks`、`blocking_items`、`warnings`、`limitations`；
+- 未自动 fetch 的 freshness 声明；
+- 可投影到 Evidence Ledger 的 `git_state` 状态；
+- 原有 `legacy_verdict`，便于渐进迁移。
+
+例如：
+
+```bash
+python scripts/check_merge_readiness.py \
+  --repo . \
+  --source feature/payment \
+  --target main \
+  --format control-adapter \
+  --output .ai-control/adapters/git-merge.json
+```
+
+生成结果可由 Control Layer 导入，但 **Control Layer 仍需结合 Acceptance Contract、Risk、Evidence 和人工审批重新作出 Policy Decision**。
+
+## 安全边界
 
 本版本刻意只做检查。它不会：
 
@@ -41,7 +79,7 @@ Conservative Git and worktree safety checks for parallel AI coding workflows.
 
 - Python 3.9+
 - Git 2.38+ 建议版本；合并检查把 `merge-tree --write-tree` 产生的临时对象隔离到系统临时目录，不写入目标仓库对象库；较旧 Git 会降级为警告
-- 仅使用 Python 标准库
+- 运行时仅使用 Python 标准库
 
 支持情况：
 
@@ -52,36 +90,36 @@ Conservative Git and worktree safety checks for parallel AI coding workflows.
 
 ## 快速开始
 
-### 1. 检查当前仓库
+### 检查当前仓库
 
 ```bash
-python /path/to/git-worktree-safety/scripts/inspect_repository.py --repo .
+python scripts/inspect_repository.py --repo .
 ```
 
-### 2. 开始修改前
+### 开始修改前
 
 ```bash
-python /path/to/git-worktree-safety/scripts/check_worktree.py --repo .
+python scripts/check_worktree.py --repo .
 ```
 
-### 3. 合并前
+### 合并前
 
 ```bash
-python /path/to/git-worktree-safety/scripts/check_merge_readiness.py \
+python scripts/check_merge_readiness.py \
   --repo . --source feature/example --target main
 ```
 
-### 4. 推送前
+### 推送前
 
 ```bash
-python /path/to/git-worktree-safety/scripts/check_push_readiness.py \
+python scripts/check_push_readiness.py \
   --repo . --branch main
 ```
 
-### 5. 清理 worktree 前
+### 清理 worktree 前
 
 ```bash
-python /path/to/git-worktree-safety/scripts/list_cleanup_candidates.py \
+python scripts/list_cleanup_candidates.py \
   --repo . --merged-into main --idle-days 7
 ```
 
@@ -95,15 +133,18 @@ python /path/to/git-worktree-safety/scripts/list_cleanup_candidates.py \
 | `1` | 存在警告，需要披露或人工复核 |
 | `2` | 存在阻止项、无效输入或无法安全判断 |
 
-`list_cleanup_candidates.py` 是批量审计工具，只要审计成功就返回 `0`；应读取每个 worktree 的独立 verdict。
+切换到 `control-adapter` 只改变 JSON 结构，不改变原检查的退出码。
+
+`list_cleanup_candidates.py` 是批量审计工具，只要审计成功就返回 `0`；应读取每个 candidate check 的状态。混合候选的 Adapter 总结果为 `WARN`，不会把某个安全候选自动变成删除许可。
 
 ## 远端状态说明
 
 脚本不会自动执行 `git fetch`。因此：
 
-- `origin/main` 可能已经过期；
+- remote-tracking refs 可能已经过期；
 - “target 未落后远端”只表示未落后本地已有的 remote-tracking ref；
-- 对合并或推送做最终判断前，应由用户显式运行 `git fetch --prune`，再重新检查。
+- 对合并或推送做最终判断前，应由用户显式运行 `git fetch --prune`，再重新检查；
+- Control Adapter 会明确输出 `fetch_performed: false` 和 `remote_state_may_be_stale: true`；
 - 如果现有 refs 无法计算 ahead/behind，推送检查会阻止，合并检查会警告；启用相应严格参数时合并检查也会阻止。
 
 ## 会话所有权说明
@@ -123,15 +164,16 @@ Git 自身没有“Claude 会话拥有这个 worktree”的标准字段。
 - 某个 AI 会话已经退出；
 - 最近未修改的目录一定无人使用。
 
-因此 0.1.0 不实现自动 worktree 所有权和自动清理。
+因此不会实现自动 worktree 所有权和自动清理。
 
 ## 测试
 
 ```bash
+python -m pip install jsonschema  # 仅测试 Schema 时需要
 bash tests/run_all.sh
 ```
 
-测试使用临时 Git 仓库和 worktree，不访问网络，也不修改真实项目。
+测试使用临时 Git 仓库和 worktree，不访问网络，也不修改真实项目。CI 覆盖 Python 3.9–3.13，并同时验证旧格式兼容和 AICR Adapter Result Schema。
 
 ## 文件结构
 
@@ -144,7 +186,9 @@ git-worktree-safety/
 ├── LICENSE
 ├── references/
 ├── scripts/
+│   └── _control_adapter.py
 ├── schemas/
+│   └── adapter-result.schema.json
 ├── examples/
 └── tests/
 ```

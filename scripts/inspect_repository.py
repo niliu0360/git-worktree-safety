@@ -5,13 +5,13 @@ import argparse
 import sys
 from pathlib import Path
 
+from _control_adapter import add_format_argument, format_report
 from _gitlib import (
     GitInspectionError,
     ahead_behind,
     current_branch,
     default_branch,
     ensure_repo,
-    exit_for_verdict,
     head_oid,
     operation_in_progress,
     parse_worktrees,
@@ -66,6 +66,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Read-only Git repository inspection.")
     parser.add_argument("--repo", default=".", help="Path inside the target Git worktree")
     parser.add_argument("--output", help="Also write the JSON report to this path")
+    add_format_argument(parser)
     args = parser.parse_args()
     try:
         report = build_report(args.repo)
@@ -74,11 +75,12 @@ def main() -> int:
             "schema_version": "0.1.0",
             "tool": "inspect_repository",
             "verdict": "INVALID",
+            "repository_root": str(Path(args.repo).resolve()),
             "errors": [str(exc)],
         }
-        write_json(report, args.output)
+        write_json(format_report(report, args.format), args.output)
         return 2
-    write_json(report, args.output)
+    write_json(format_report(report, args.format), args.output)
     return 0
 
 
