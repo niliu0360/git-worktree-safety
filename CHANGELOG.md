@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.0-beta.1 — 2026-07-24
+
+- 为五个只读检查脚本增加 `--format control-adapter`。
+- 新格式遵循 AICR 0.2 Adapter Result：`PASS / WARN / BLOCK / UNKNOWN`。
+- 固定输出边界 `scope: GIT_STATE_ONLY`，不再让 Git 结论看起来像整体合并、推送或发布授权。
+- 增加 `observed_at`、run ID、仓库/分支/ref 快照、freshness、limitations 和 suggested actions。
+- 保留原有 0.1 JSON 为默认输出，现有调用方无需立即迁移。
+- 批量清理审计保留每个 worktree 的候选级 PASS/WARN/BLOCK，不把混合候选误解释为全局删除授权。
+- 增加与 Control Layer 相同的 Adapter Result JSON Schema 和 Python 3.9–3.13 验证。
+
 ## 0.1.0 — 2026-07-22
 
 首个公开 Skill 版本。
