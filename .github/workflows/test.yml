@@ -19,6 +19,8 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
+      - name: Install schema validator
+        run: python -m pip install jsonschema
       - run: bash tests/run_all.sh
         env:
           PYTHONDONTWRITEBYTECODE: "1"
