@@ -25,7 +25,7 @@ description: Use when AI Coding 任务涉及 Git worktree、多窗口或多 Agen
 
 ## 输出模式
 
-默认保持 0.1.x JSON：
+默认保持原有 JSON：
 
 ```text
 --format legacy

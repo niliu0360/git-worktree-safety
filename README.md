@@ -1,4 +1,4 @@
-# git-worktree-safety 0.2.0-beta.1
+# git-worktree-safety 0.1.0
 
 > **Status: Public Beta** — explicit workflow, deterministic checks, no automatic enforcement.
 
@@ -21,12 +21,12 @@ Conservative Git and worktree safety checks for parallel AI coding workflows.
 
 `git-worktree-safety` 只提供 Git/worktree 事实。它不决定需求是否完成，也不独立授权合并、推送、发布或删除。
 
-## 0.2 的变化
+## 0.1.0 首发能力
 
 五个脚本都支持两种输出：
 
 ```text
---format legacy           # 默认，保持 0.1.x JSON 兼容
+--format legacy           # 默认，兼容原有 JSON
 --format control-adapter  # AICR 0.2 Adapter Result
 ```
 
